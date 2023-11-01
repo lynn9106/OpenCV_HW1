@@ -1,4 +1,5 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QFileDialog
 
 class Ui_mainWindow(object):
     def setupUi(self, mainWindow):
@@ -9,21 +10,14 @@ class Ui_mainWindow(object):
         self.centralwidget.setObjectName("centralwidget")
 
     # Load Image
-        self.btn1_LoadImage = QtWidgets.QPushButton(self.centralwidget)
-        self.btn1_LoadImage.setGeometry(QtCore.QRect(20, 250, 80, 20))
-        self.btn1_LoadImage.setObjectName("btn1_LoadImage")
-        self.btn2_LoadImage = QtWidgets.QPushButton(self.centralwidget)
-        self.btn2_LoadImage.setGeometry(QtCore.QRect(20, 350, 80, 20))
-        self.btn2_LoadImage.setObjectName("btn2_LoadImage")
+        self.btn_LoadImage = QtWidgets.QPushButton(self.centralwidget)
+        self.btn_LoadImage.setGeometry(QtCore.QRect(20, 250, 80, 20))
+        self.btn_LoadImage.setObjectName("btn_LoadImage")
 
-        self.label1_Image1Name = QtWidgets.QLabel(self.centralwidget)
-        self.label1_Image1Name.setGeometry(QtCore.QRect(25, 290, 75, 20))
-        self.label1_Image1Name.setText("")
-        self.label1_Image1Name.setObjectName("label1_Image1Name")
-        self.label2_Image2Name = QtWidgets.QLabel(self.centralwidget)
-        self.label2_Image2Name.setGeometry(QtCore.QRect(25, 390, 75, 20))
-        self.label2_Image2Name.setText("")
-        self.label2_Image2Name.setObjectName("label2_Image2Name")
+        self.label_ImageName = QtWidgets.QLabel(self.centralwidget)
+        self.label_ImageName.setGeometry(QtCore.QRect(25, 290, 90, 20))
+        self.label_ImageName.setText("")
+        self.label_ImageName.setObjectName("label_ImageName")
 
 
     # 1. Image Processing
@@ -174,9 +168,9 @@ class Ui_mainWindow(object):
     def retranslateUi(self, mainWindow):
         _translate = QtCore.QCoreApplication.translate
         mainWindow.setWindowTitle(_translate("mainWindow", "MainWindow"))
-        self.btn1_LoadImage.setText(_translate("mainWindow", "Load Image 1"))
-        self.btn2_LoadImage.setText(_translate("mainWindow", "Load Image 2"))
-        self.ImageProcessBox.setTitle(_translate("mainWindow", "1. .Image Processing"))
+        self.btn_LoadImage.setText(_translate("mainWindow", "Load Image"))
+        self.label_ImageName.setText(_translate("mainWindow", "No Image Loaded"))
+        self.ImageProcessBox.setTitle(_translate("mainWindow", "1. Image Processing"))
         self.btn1_CSeperation.setText(_translate("mainWindow", "1.1 Color Seperation"))
         self.btn1_CTransformation.setText(_translate("mainWindow", "1.2 Color Transformation"))
         self.btn1_CExtraction.setText(_translate("mainWindow", "1.3 Color Extraction"))
@@ -208,15 +202,6 @@ class Ui_mainWindow(object):
         self.btn5_Inference.setText(_translate("mainWindow", "5.4 Inference"))
         self.label5_Predict.setText(_translate("mainWindow", "Predict ="))
 
-
-if __name__=="__main__":
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    MainWindow = QtWidgets.QMainWindow()
-    ui = Ui_mainWindow()
-    ui.setupUi(MainWindow)
-    MainWindow.show()
-    sys.exit(app.exec_())
 
 
 

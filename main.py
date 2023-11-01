@@ -1,3 +1,37 @@
+import MainUI
+from controller import MainWindow_controller
+from PyQt5 import QtCore, QtGui, QtWidgets
+
+if __name__=="__main__":
+    import sys
+    app = QtWidgets.QApplication(sys.argv)
+    MainWindow = MainWindow_controller()
+    MainWindow.show()
+    sys.exit(app.exec_())
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+'''
 import sys
 from PyQt5.QtWidgets import  QApplication,QMainWindow,QWidget ,QPushButton, QVBoxLayout,QLineEdit,QLabel
 from PyQt5 import QtCore, QtGui
@@ -8,17 +42,6 @@ def buttonClick():
     print("Button Clicked")
 
 # 設定按鈕樣式
-style_btn = '''
-    QPushButton{
-        background:#ff0;
-        border:1px solid #000;
-        border-radius:10px;
-        padding:5px;
-    }
-    QPushButton:pressed{
-        background:#f90;
-    }
-'''
 font = QtGui.QFont()
 font.setPointSize(12)
 
@@ -65,14 +88,7 @@ btn3_IProcess.setGeometry(10, 200, 280, 50)
 
 #Image Smoothing
 
-
-
-
-
-
-
 mainWindow.show() # 讓視窗顯現出來
 
 sys.exit(app.exec_()) #sys.exit()當我們關閉程式時可以幫助我們離開
-
-
+'''
