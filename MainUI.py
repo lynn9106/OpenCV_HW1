@@ -161,6 +161,11 @@ class Ui_mainWindow(object):
         self.label5_Predict = QtWidgets.QLabel(self.VGG19Box)
         self.label5_Predict.setGeometry(QtCore.QRect(40, 220, 100, 11))
         self.label5_Predict.setObjectName("label5_Predict")
+
+        self.image_label = QtWidgets.QLabel(self.VGG19Box)
+        self.image_label.setGeometry(40, 250, 128, 128)
+        self.image_label.setObjectName("image_label")
+
         mainWindow.setCentralWidget(self.centralwidget)
         self.retranslateUi(mainWindow)
         QtCore.QMetaObject.connectSlotsByName(mainWindow)
