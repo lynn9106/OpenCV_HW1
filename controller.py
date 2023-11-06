@@ -2,9 +2,20 @@ from MainUI import Ui_mainWindow
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtWidgets import QFileDialog
+from PyQt5.QtGui import QPixmap
+
+from PIL import Image
+from torchvision import transforms
+from torchvision.models import vgg19_bn
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
+
+import torch
+import torchsummary
 import os.path
 import cv2
 import numpy as np
+
 
 class MainWindow_controller(QtWidgets.QMainWindow):
 
@@ -29,6 +40,11 @@ class MainWindow_controller(QtWidgets.QMainWindow):
         self.ui.btn3_CombAndThres.clicked.connect(self.CombAndThres)
         self.ui.btn3_Gradient.clicked.connect(self.GradientAngle)
         self.ui.btn4_Transforms.clicked.connect(self.Transform)
+        self.ui.btn5_AgumentedImages.clicked.connect(self.AugmentedImage)
+        self.ui.btn5_ModelStruct.clicked.connect(self.ModelStruct)
+        self.ui.btn5_AccAndLoss.clicked.connect(self.AccAndLoss)
+        self.ui.btn5_LoadImage.clicked.connect(self.LoadImage_5)
+        self.ui.btn5_Inference.clicked.connect(self.Inference)
 
 
     def openfile1(self):
@@ -68,9 +84,11 @@ class MainWindow_controller(QtWidgets.QMainWindow):
         cv2.imshow('I1(OpenCV function)', gray_image)
 
         blue_channel, green_channel, red_channel = cv2.split(image)
-        Average_image = (blue_channel+green_channel+red_channel)/3
-        cv2.imshow('I2(Averaged Weighted)', Average_image)
 
+        average_weighted_image = (blue_channel + green_channel + red_channel) / 3
+        average_weighted_image = average_weighted_image.astype(np.uint8)
+
+        cv2.imshow('I2(Averaged Weighted)', average_weighted_image)
         # Wait for a key press and close all windows
         cv2.waitKey(0)
         cv2.destroyAllWindows()
@@ -278,7 +296,6 @@ class MainWindow_controller(QtWidgets.QMainWindow):
 
         return combine_image
 
-
     def GradientAngle(self):
         if self.Image is None:
             return
@@ -325,208 +342,115 @@ class MainWindow_controller(QtWidgets.QMainWindow):
 
         cv2.imshow('Output Image', result_image)
 
+    def AugmentedImage(self):
+        image_folder = './Q5_image/Q5_1/'
+
+        augmented_images = []
+        images_name = []
+
+        data_transforms = transforms.Compose([
+            transforms.RandomHorizontalFlip(),  # Random horizontal flip
+            transforms.RandomVerticalFlip(),  # Random vertical flip
+        ])
+        transforms.RandomRotation(30),  # Random rotation (up to 30 degrees)
+
+        for file in os.listdir(image_folder):       # Load and augment the images
+            if file.endswith(".png"):
+                file_path = os.path.join(image_folder , file)
+                image = Image.open(file_path)
+
+                augmented = data_transforms(image)
+                augmented_images.append(augmented)
+                images_name.append(file)
+
+        # Display the augmented images
+        fig, axes = plt.subplots(3, 3, figsize=(13, 13))
+
+        i = 0
+        for image in augmented_images:
+            row = i // 3
+            col = i % 3
+            axes[row, col].imshow(image)
+            axes[row, col].set_title(images_name[i])
+            i += 1
+        plt.show()
+
+    def ModelStruct(self):
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        model = vgg19_bn(num_classes=10)  # build a VGG19 with batch normalization (BN) model
+        model.to(device)
+        torchsummary.summary(model, (3, 224, 224))  # show the structure
+    def AccAndLoss(self):
+        image_path = './training_validation_plot.png'  # Replace with the actual file path
+        img = mpimg.imread(image_path)
+        plt.imshow(img)
+        plt.axis('off')
+        plt.show()
+
+    def LoadImage_5(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.ReadOnly
+        file_name, _ = QFileDialog.getOpenFileName(self, 'Open Image', '','Images (*.png *.jpg *.jpeg *.bmp *.gif);;All Files (*)',options=options)
+        if file_name:
+            pixmap = QPixmap(file_name)
+            self.ui.image_label.setPixmap(pixmap.scaled(128, 128))
+            pixmap.save('temp_image.png')  # Save the displayed image to a temporary file
 
 
+    def Inference(self):
 
+        # Check if a CUDA-compatible GPU is available
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+        # Define the class labels
+        classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
+        # Define the image transformation
+        inference_transform = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
+        ])
 
+        # Path to the image you want to infer
+        image_path = 'temp_image.png'
 
+        if not os.path.exists(image_path):
+            print(f"Error: Image file '{image_path}' does not exist.")
+        else:
+            # Load and transform the image
+            image = inference_transform(Image.open(image_path))
+            image = image.unsqueeze(0)
+            image = image.to(device)
 
+            # Load the pre-trained model
+            model = vgg19_bn(num_classes=10)  # Replace 'YourModel' with your actual model class
+            model.load_state_dict(torch.load('best_model_weights.pth'))
+            model.to(device)
 
+            with torch.no_grad():
+                outputs = model(image)
+                probabilities = torch.softmax(outputs, dim=1)
+                _, predicted = torch.max(outputs, 1)
 
+                class_label = classes[predicted]
+            #    print(f"Predicted Class: {class_label}")
+            #    print(f"Class Probabilities: {probabilities[0]}")
 
-    '''
-       # gradient_angle = np.arctan2(sobel_x , sobel_y) * 180 / np.pi
-        gradient_angle = (gradient_angle + 360) % 360
+                self.ui.label5_Predict.setText(f"Predict =  {class_label}")
 
-        mask1 = np.logical_and(gradient_angle >= 120, gradient_angle <= 180).astype(np.uint8) * 255
-        mask2 = np.logical_and(gradient_angle >= 210, gradient_angle <= 330).astype(np.uint8) * 255
-        cv2.imshow('mask1', mask1)
-        cv2.imshow('mask2', mask2)
+                probability = probabilities[0].cpu().numpy()
+                # Create a histogram of the prediction probabilities
+                plt.figure(figsize=(8, 4))
+                plt.bar(range(len(probability)), probability)
+                plt.xlabel('Class')
+                plt.ylabel('Probability')
+                plt.title('Prediction Probability Distribution')
+                plt.xticks(range(len(classes)), classes, rotation=45)
+                plt.tight_layout()
 
-        # Apply masks to the combination image (assuming you already have the combination image)
-        combination = self.CombineSobel()
-        result1 = cv2.bitwise_and(combination, combination, mask=mask1)
-        result2 = cv2.bitwise_and(combination, combination, mask=mask2)
-
-        cv2.imshow('Result 1 (120-180 degrees)', result1)
-        cv2.imshow('Result 2 (210-330 degrees)', result2)
-
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
-here
-
-
-      
-        image = cv2.imread(self.Image)
-        gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        smooth_image = cv2.GaussianBlur(gray_image, (3, 3), 0)
-
-        # Create an empty output image
-        gradient_angle = np.zeros_like(smooth_image)
-        # Iterate through the image and apply the Sobel y operator
-        for y in range(1, smooth_image.shape[0] - 1):
-            for x in range(1, smooth_image.shape[1] - 1):
-                sobel_x_pixel = np.sum(smooth_image[y - 1:y + 2, x - 1:x + 2] * self.sobel_x_filter)
-                sobel_y_pixel = np.sum(smooth_image[y - 1:y + 2, x - 1:x + 2] * self.sobel_y_filter)
-                gradient_angle[y, x] = np.arctan2(sobel_y_pixel,sobel_x_pixel) * 180 / np.pi  # the pixel value at position (y,x)
-                gradient_angle[y, x] = (gradient_angle[y, x] + 360) % 360
-                
-                
-                
-                
-                
-                
-          gradient_angle = np.zeros_like(sobel_x)
-        mask1 = np.zeros_like(sobel_x)
-        mask2 = np.zeros_like(sobel_x)
-
-        for y in range(1, sobel_x.shape[0] - 1):
-            for x in range(1, sobel_x.shape[1] - 1):
-                gradient_angle[y, x] = np.arctan2(sobel_x[y,x],sobel_y[y,x]) * 180 / np.pi  # the pixel value at position (y,x)
-                gradient_angle[y, x] = (gradient_angle[y, x] + 360) % 360
-
-        print(gradient_angle)
-
-        mask1 = np.logical_and(gradient_angle >= 120, gradient_angle <= 180).astype(np.uint8) * 255
-        mask2 = np.logical_and(gradient_angle >= 210, gradient_angle <= 330).astype(np.uint8) * 255
-        cv2.imshow('mask1', mask1)
-        cv2.imshow('mask2', mask2)
-
-        # Apply masks to the combination image (assuming you already have the combination image)
-        combination = self.CombineSobel()
-        result1 = cv2.bitwise_and(combination, combination, mask=mask1)
-        result2 = cv2.bitwise_and(combination, combination, mask=mask2)
-
-        cv2.imshow('Result 1 (120-180 degrees)', result1)
-        cv2.imshow('Result 2 (210-330 degrees)', result2)
-
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-                
-                
-                
-                
-                
-                
-
-
-
-
-        sobel_x_image = self.Sobel_Func(self.sobel_x_filter)
-        sobel_y_image = self.Sobel_Func(self.sobel_y_filter)
-    
-        # Calculate the gradient angle using the cosine theorem
-        dot_product = sobel_x_image * self.sobel_x_filter + sobel_y_image * self.sobel_y_filter
-        magnitude_x = np.sqrt(sobel_x_image * sobel_x_image)
-        magnitude_y = np.sqrt(sobel_y_image * sobel_y_image)
-        cos_gradient_angle = dot_product / (magnitude_x * magnitude_y)
-    
-        # Handle cases where the cos_gradient_angle is out of the valid range [-1, 1]
-        cos_gradient_angle = np.clip(cos_gradient_angle, -1, 1)
-    
-        # Calculate the gradient angle in radians
-        gradient_angle_radians = np.arccos(cos_gradient_angle)
-    
-        # Convert gradient angle to degrees
-        gradient_angle = np.degrees(gradient_angle_radians)
-    
-        # Ensure angles are between 0 and 360 degrees
-        gradient_angle = (gradient_angle + 360) % 360
-    
-        print(gradient_angle)
-    
-        mask1 = np.logical_and(gradient_angle >= 120, gradient_angle <= 180).astype(np.uint8) * 255
-        mask2 = np.logical_and(gradient_angle >= 210, gradient_angle <= 330).astype(np.uint8) * 255
-    
-        cv2.imshow('mask1', mask1)
-        cv2.imshow('mask2', mask2)
-    '''
-    '''
-        magnitude_x = np.abs(sobel_x_image)
-        magnitude_y = np.abs(sobel_y_image)
-    
-        gradient_angle = np.arctan2(magnitude_y, magnitude_x) * 180 / np.pi
-        gradient_angle = (gradient_angle + 360) % 360
-        print(gradient_angle)
-    
-    
-    
-    
-    
-    
-    
-        # Calculate the dot product of Sobel x and Sobel y
-        dot_product = sobel_x_image * sobel_y_image
-    
-        # Calculate the cosine of the gradient angle
-        cos_gradient_angle = dot_product / (magnitude_x * magnitude_y)
-    
-        # Calculate the gradient angle in radians
-        gradient_angle_rad = np.arccos(cos_gradient_angle)
-    
-        # Convert radians to degrees
-        gradient_angle_deg = np.degrees(gradient_angle_rad)
-    
-        # Adjust the angle to the range [0, 360)
-        gradient_angle_deg = (gradient_angle_deg + 360) % 360
-    
-        print(gradient_angle_deg)
-    '''
-        # Calculate gradient angle (in degrees) from Sobel x and Sobel y
-     #   gradient_angle = np.degrees(np.arctan2(sobel_x_image, sobel_y_image))
-    #    gradient_angle = (gradient_angle + 360) % 360
-       # gradient_angle = (np.arctan2(sobel_x_image,sobel_y_image) * 180) / np.pi
-       # gradient_angle = (gradient_angle + 360) % 360
-     #   print(gradient_angle)
-
-        # Define the angle ranges
-      #  angle_range1 = (120, 180)  # 120 degrees to 180 degrees
-     #   angle_range2 = (210, 330)  # 210 degrees to 330 degrees
-
-      #  mask1 = cv2.inRange(gradient_angle, 120, 180)
-     #   mask2 = cv2.inRange(gradient_angle, 210, 330)
-
-
-        # mask1 0~120 = 0 ; 120~180 = 255 ; 180~360 = 0
-     #   mask1 = cv2.threshold(gradient_angle ,119,255,cv2.THRESH_BINARY)  # 0~119 = 0 ; 120 ~360 = 255
-     #   mask1_final = cv2.threshold(mask1,180,255,cv2.THRESH_TOZERO_INV) # 180~360 = 0 ; else won't change (0~120 = 0 ; 120 ~ 180 = 255)
-     #   mask2 = cv2.threshold(gradient_angle ,209,255,cv2.THRESH_BINARY)  # 0~209 = 0 ; 210 ~360 = 255
-     #   mask2_final = cv2.threshold(mask2,330,255,cv2.THRESH_TOZERO_INV) # 330~360 = 0 ; else won't change (0~209 = 0 ; 210 ~ 330 = 255)
-
-
-        # Generate masks for specific angle ranges
-     #   mask1 = np.logical_and(gradient_angle >= 120, gradient_angle <= 180).astype(
-    #        np.uint8) * 255
-    #    mask2 = np.logical_and(gradient_angle >= angle_range2[0], gradient_angle <= angle_range2[1]).astype(
-    #        np.uint8) * 255
-     #    print(gradient_angle)
-     #    cv2.imshow('Angle', gradient_angle)
-
-     #   mask1 = np.uint8(((gradient_angle >= 120) & (gradient_angle <= 180))) * 255
-     #   mask2 = np.uint8(((gradient_angle >= 210) & (gradient_angle <= 330))) * 255
-      #  cv2.imshow('mask1', mask1)
-     #   cv2.imshow('mask2', mask2)
-    #
-
-        # Apply masks to the combination image (assuming you already have the combination image)
-     #   combination = self.CombineSobel()
-     #   result1 = cv2.bitwise_and(combination, combination, mask=mask1)
-     #   result2 = cv2.bitwise_and(combination, combination, mask=mask2)
-
-        # Display both results
-    #    cv2.imshow('Result 1 (120-180 degrees)', result1)
-     #   cv2.imshow('Result 2 (210-330 degrees)', result2)
-
-     #   cv2.waitKey(0)
-     #   cv2.destroyAllWindows()
-
-
-
-
-
+                # Display the histogram in a new window
+                plt.show()
 
 
 
